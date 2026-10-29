@@ -205,3 +205,71 @@ void trier_par_date(Mesure *tableau, int nb_mesures) {
     }
     printf("[SUCCES] Tableau trie par date.\n");
 }
+
+/**
+ * Calcule les agregats statistiques (total, moyenne, min, max, alertes) par batiment.
+ */
+
+Statistique* calculer_statistiques(const Mesure *tableau, int nb_mesures, int *nb_stats) {
+    *nb_stats = 0;
+    Statistique *stats = NULL;
+
+    for (int i = 0; i < nb_mesures; i++) {
+        int index_exist = -1;
+        for (int j = 0; j < *nb_stats; j++) {
+            if (strcmp(stats[j].batiment, tableau[i].batiment) == 0) {
+                index_exist = j;
+                break;
+            }
+        }
+
+        if (index_exist != -1) {
+            // Mise a jour du batiment existant
+            stats[index_exist].total += tableau[i].valeur;
+            if (tableau[i].valeur < stats[index_exist].min) stats[index_exist].min = tableau[i].valeur;
+            if (tableau[i].valeur > stats[index_exist].max) stats[index_exist].max = tableau[i].valeur;
+            if (tableau[i].alerte) stats[index_exist].nb_alertes++;
+        } else {
+            // Ajout d'un nouveau batiment
+            (*nb_stats)++;
+            stats = (Statistique *)realloc(stats, (*nb_stats) * sizeof(Statistique));
+            strcpy(stats[*nb_stats - 1].batiment, tableau[i].batiment);
+            stats[*nb_stats - 1].total = tableau[i].valeur;
+            stats[*nb_stats - 1].min = tableau[i].valeur;
+            stats[*nb_stats - 1].max = tableau[i].valeur;
+            stats[*nb_stats - 1].nb_alertes = tableau[i].alerte ? 1 : 0;
+            stats[*nb_stats - 1].moyenne = 0;
+        }
+    }
+
+    // Calcul de la moyenne pour chaque batiment
+    for (int i = 0; i < *nb_stats; i++) {
+        int compt = 0;
+        for (int j = 0; j < nb_mesures; j++) {
+            if (strcmp(tableau[j].batiment, stats[i].batiment) == 0) compt++;
+        }
+        stats[i].moyenne = (compt > 0) ? (stats[i].total / compt) : 0;
+    }
+
+    return stats;
+}
+
+/**
+ * Calcule la moyenne mobile des N dernieres valeurs pour un batiment (Fonctionnalite Bonus).
+ */
+
+float calculer_moyenne_mobile(const Mesure *tableau, int nb_mesures, const char *batiment, int fenetre) {
+    float somme = 0.0;
+    int compteur = 0;
+
+    // Start from the newest item and stop when we have enough matching measurements.
+    for (int i = nb_mesures - 1; i >= 0 && compteur < fenetre; i--) {
+        if (strcasecmp(tableau[i].batiment, batiment) == 0) {
+            somme += tableau[i].valeur;
+            compteur++;
+        }
+    }
+
+    if (compteur == 0) return 0.0;
+    return somme / compteur;
+}
