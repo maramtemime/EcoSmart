@@ -135,3 +135,19 @@ int supprimer_mesure(Mesure *tableau, int *nb_mesures, int index) {
     printf("[SUCCES] Mesure a l'index %d supprimee.\n", index);
     return 1;
 }
+
+/**
+ * Parcourt et met a jour le champ 'alerte' pour toutes les mesures.
+ */
+void detecter_anomalies(Mesure *tableau, int nb_mesures) {
+    int total_anomalies = 0;
+    for (int i = 0; i < nb_mesures; i++) {
+        if (tableau[i].valeur > tableau[i].seuil) {
+            tableau[i].alerte = 1;
+            total_anomalies++;
+        } else {
+            tableau[i].alerte = 0;
+        }
+    }
+    printf("[ANALYSE] Verification terminee. Anomalies detectees : %d / %d\n", total_anomalies, nb_mesures);
+}
