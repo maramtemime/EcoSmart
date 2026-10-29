@@ -74,26 +74,6 @@ Mesure* charger_fichier_csv(const char *nom_fichier, int *nb_mesures, int *capac
     printf("[SUCCES] %d mesures chargees depuis %s\n", *nb_mesures, nom_fichier);
     return tableau;
 }
- * Ajoute une nouvelle mesure au tableau dynamique.
- */
-// Adds a new measurement. If the list is full, it asks for more memory first.
-int ajouter_mesure(Mesure **tableau, int *nb_mesures, int *capacite, Mesure nouvelle) {
-    if (*nb_mesures >= *capacite) {
-        *capacite = (*capacite == 0) ? 10 : (*capacite * 2);
-        Mesure *temp = (Mesure *)realloc(*tableau, (*capacite) * sizeof(Mesure));
-        if (temp == NULL) {
-            printf("[ERREUR] Allocation memoire echouee.\n");
-            return 0;
-        }
-        *tableau = temp;
-    }
-
-    // Calcul automatique de l'alerte
-    nouvelle.alerte = (nouvelle.valeur > nouvelle.seuil) ? 1 : 0;
-    (*tableau)[*nb_mesures] = nouvelle;
-    (*nb_mesures)++;
-    return 1;
-}
 
 * Ajoute une nouvelle mesure au tableau dynamique.
  */
@@ -150,4 +130,78 @@ void detecter_anomalies(Mesure *tableau, int nb_mesures) {
         }
     }
     printf("[ANALYSE] Verification terminee. Anomalies detectees : %d / %d\n", total_anomalies, nb_mesures);
+}
+/**
+ * Filtre et affiche les mesures d'un batiment donne.
+ */
+void rechercher_par_batiment(const Mesure *tableau, int nb_mesures, const char *batiment) {
+    printf("\n--- Resultats de recherche pour le batiment : %s ---\n", batiment);
+    int trouve = 0;
+    for (int i = 0; i < nb_mesures; i++) {
+        if (comparer_sans_casse(tableau[i].batiment, batiment) == 0) {
+            printf("[%d] Ressource: %-11s | Valeur: %6.2f | Seuil: %6.2f | Date: %s | Alerte: %s\n",
+                   i, tableau[i].ressource, tableau[i].valeur, tableau[i].seuil,
+                   tableau[i].date, tableau[i].alerte ? "OUI" : "NON");
+            trouve++;
+        }
+    }
+    if (trouve == 0) printf("Aucune mesure trouvee pour ce batiment.\n");
+}
+
+/**
+ * Filtre et affiche les mesures par type de ressource.
+ */
+void rechercher_par_ressource(const Mesure *tableau, int nb_mesures, const char *ressource) {
+    printf("\n--- Resultats de recherche pour la ressource : %s ---\n", ressource);
+    int trouve = 0;
+    for (int i = 0; i < nb_mesures; i++) {
+        if (comparer_sans_casse(tableau[i].ressource, ressource) == 0) {
+            printf("[%d] Batiment: %-15s | Valeur: %6.2f | Seuil: %6.2f | Date: %s | Alerte: %s\n",
+                   i, tableau[i].batiment, tableau[i].valeur, tableau[i].seuil,
+                   tableau[i].date, tableau[i].alerte ? "OUI" : "NON");
+            trouve++;
+        }
+    }
+    if (trouve == 0) printf("Aucune mesure trouvee pour cette ressource.\n");
+}
+
+/**
+ * Trie le tableau de mesures selon la valeur consommee (Tri par selection).
+ */
+void trier_par_consommation(Mesure *tableau, int nb_mesures, int croissant) {
+    for (int i = 0; i < nb_mesures - 1; i++) {
+        int idx_ext = i;
+        for (int j = i + 1; j < nb_mesures; j++) {
+            if (croissant ? (tableau[j].valeur < tableau[idx_ext].valeur)
+                          : (tableau[j].valeur > tableau[idx_ext].valeur)) {
+                idx_ext = j;
+            }
+        }
+        if (idx_ext != i) {
+            Mesure tmp = tableau[i];
+            tableau[i] = tableau[idx_ext];
+            tableau[idx_ext] = tmp;
+        }
+    }
+    printf("[SUCCES] Tableau trie par consommation (%s).\n", croissant ? "croissant" : "decroissant");
+}
+
+/**
+ * Trie le tableau de mesures par date (Ordre chronologique).
+ */
+void trier_par_date(Mesure *tableau, int nb_mesures) {
+    for (int i = 0; i < nb_mesures - 1; i++) {
+        int idx_min = i;
+        for (int j = i + 1; j < nb_mesures; j++) {
+            if (strcmp(tableau[j].date, tableau[idx_min].date) < 0) {
+                idx_min = j;
+            }
+        }
+        if (idx_min != i) {
+            Mesure tmp = tableau[i];
+            tableau[i] = tableau[idx_min];
+            tableau[idx_min] = tmp;
+        }
+    }
+    printf("[SUCCES] Tableau trie par date.\n");
 }
